@@ -59,6 +59,7 @@
     </main>
     <script>
         mapboxgl.accessToken = 'pk.eyJ1IjoiYW1tODMiLCJhIjoiY2xvd2JhcTJ2MHdhdzJqbzdyZXJha3U5bCJ9.OBrSKtdj1M279O5vz470KA';
+        
         let map = new mapboxgl.Map({
             container: 'map', // container ID
             style: 'mapbox://styles/mapbox/satellite-v9', // style URL
@@ -73,8 +74,7 @@
             try {
                 const earthquakesResponse = await fetch('assets/earthquakes.geojson');
                 earthquakes = await earthquakesResponse.json();
-                // Populate the table with earthquake data
-                populateTable(earthquakes);
+                populateTable(earthquakes); // Populate the table with earthquake data
                 const japanResponse = await fetch('assets/japan.json');
                 japan = await japanResponse.json();
             } catch (error) {
@@ -97,11 +97,46 @@
         }
 
         map.on('load', async function loadingData() {
-            await geojsonFetch(); // Ensure data is loaded before proceeding
-            if (earthquakes && japan) {
-                // Existing code to add sources and layers to the map...
+            await geojsonFetch(); // Fetch and wait for GeoJSON data
+
+            if (earthquakes) {
+                map.addSource('earthquakes', {
+                    type: 'geojson',
+                    data: earthquakes
+                });
+
+                map.addLayer({
+                    'id': 'earthquakes-layer',
+                    'type': 'circle',
+                    'source': 'earthquakes',
+                    'paint': {
+                        'circle-radius': 8,
+                        'circle-stroke-width': 2,
+                        'circle-color': 'red',
+                        'circle-stroke-color': 'white'
+                    }
+                });
             } else {
-                console.error("GeoJSON data is not loaded.");
+                console.error("Earthquake GeoJSON data is not loaded.");
+            }
+
+            if (japan) {
+                map.addSource('japan', {
+                    type: 'geojson',
+                    data: japan
+                });
+
+                map.addLayer({
+                    'id': 'japan-layer',
+                    'type': 'fill',
+                    'source': 'japan',
+                    'paint': {
+                        'fill-color': '#0080ff',
+                        'fill-opacity': 0.5
+                    }
+                });
+            } else {
+                console.error("Japan GeoJSON data is not loaded.");
             }
         });
 
@@ -133,166 +168,3 @@
     </script>
 </body>
 </html>
-
-<!-- <!DOCTYPE html>
-<html lang="en-US">
-<head>
-    <meta charset="utf-8">
-    <title>Earthquake List</title>
-    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.css" rel="stylesheet">
-    <script src="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.js"></script>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-        }
-
-        #container {
-            display: flex;
-            height: 100vh;
-            flex-direction: row;
-            align-items: stretch;
-        }
-
-        #side-panel {
-            flex-basis: 500px;
-            overflow-y: scroll;
-        }
-
-        #map {
-            flex-grow: 1;
-        }
-
-        button {
-            margin-bottom: 10px;
-        }
-
-        table {
-            border-collapse: collapse;
-            border-spacing: 0;
-            width: 100%;
-            border: 1px solid #ddd;
-        }
-
-        th,
-        td {
-            text-align: left;
-            padding: 16px;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-    </style>
-</head>
-<body>
-    <main id="container">
-        <div id="side-panel">
-            <h2>Earthquake List</h2>
-            <button>Sort by Magnitude</button>
-            <table>
-                <tr>
-                    <th>id</th>
-                    <th>magnitude</th>
-                    <th>timestamp</th>
-                </tr>
-            </table>
-        </div>
-        <div id="map"></div>
-    </main>
-    <script>
-        mapboxgl.accessToken = 'pk.eyJ1IjoiYW1tODMiLCJhIjoiY2xvd2JhcTJ2MHdhdzJqbzdyZXJha3U5bCJ9.OBrSKtdj1M279O5vz470KA';
-
-        let map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/mapbox/satellite-v9',
-    zoom: 5.5,
-    center: [138, 38]
-});
-
-let earthquakes;
-let japan;
-
-async function geojsonFetch() {
-    try {
-        const earthquakesResponse = await fetch('assets/earthquakes.geojson');
-        earthquakes = await earthquakesResponse.json();
-        const japanResponse = await fetch('assets/japan.json');
-        japan = await japanResponse.json();
-    } catch (error) {
-        console.error("Failed to load GeoJSON data:", error);
-    }
-}
-
-map.on('load', async function loadingData() {
-    await geojsonFetch(); // Ensure data is loaded before proceeding
-
-    // Check if the data is loaded
-    if (earthquakes && japan) {
-        map.addSource('earthquakes', {
-            type: 'geojson',
-            data: earthquakes
-        });
-
-        map.addLayer({
-            'id': 'earthquakes-layer',
-            'type': 'circle',
-            'source': 'earthquakes',
-            'paint': {
-                'circle-radius': 8,
-                'circle-stroke-width': 2,
-                'circle-color': 'red',
-                'circle-stroke-color': 'white'
-            }
-        });
-
-        map.addSource('japan', {
-            type: 'geojson',
-            data: japan
-        });
-
-        map.addLayer({
-            'id': 'japan-layer',
-            'type': 'fill',
-            'source': 'japan',
-            'paint': {
-                'fill-color': '#0080ff',
-                'fill-opacity': 0.5
-            }
-        });
-    } else {
-        console.error("GeoJSON data is not loaded.");
-    }
-});
-
-
-        let btn = document.getElementsByTagName("button")[0];
-
-        btn.addEventListener('click', sortTable);
-
-        function sortTable(e) {
-            let table, rows, switching, i, x, y, shouldSwitch;
-            table = document.getElementsByTagName("table")[0];
-            switching = true;
-            while (switching) {
-                switching = false;
-                rows = table.rows;
-                for (i = 1; i < (rows.length - 1); i++) {
-                    shouldSwitch = false;
-                    x = parseFloat(rows[i].getElementsByTagName("td")[1].innerHTML);
-                    y = parseFloat(rows[i + 1].getElementsByTagName("td")[1].innerHTML);
-                    if (x < y) {
-                        shouldSwitch = true;
-                        break;
-                    }
-                }
-                if (shouldSwitch) {
-                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-                    switching = true;
-                }
-            }
-        }
-    </script>
-</body>
-</html> -->
