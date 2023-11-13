@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="utf-8">
+    <title>Empty Properties in Calderdale</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+
+    <!-- Mapbox GL CSS -->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.css" rel="stylesheet">
+
+    <!-- Mapbox GL JS -->
+    <script src="https://api.mapbox.com/mapbox-gl-js/v2.5.0/mapbox-gl.js"></script>
+
+    <style>
+        body { margin: 0; padding: 0; }
+        #container { display: flex; height: 100vh; }
+        #side-panel { width: 300px; overflow: auto; }
+        #map { flex-grow: 1; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #eee; }
+    </style>
+</head>
+
+<body>
+    <main id="container">
+        <div id="side-panel">
+            <h2>Empty Properties List</h2>
+            <button onclick="sortTable()">Sort by Duration</button>
+            <table id="propertiesTable">
+                <thead>
+                    <tr>
+                        <th>Ward Name</th>
+                        <th>Total Empty</th>
+                        <th>> 6 Months</th>
+                        <th>< 6 Months</th>
+                        <th>KPI > 6 Months</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be populated here by the JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        <div id="map"></div>
+    </main>
+
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoiYW1tODMiLCJhIjoiY2xvd2JhcTJ2MHdhdzJqbzdyZXJha3U5bCJ9.OBrSKtdj1M279O5vz470KA';
+
+        let map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: [-1.85, 53.72], // Approximate center of Calderdale
+            zoom: 12
+        });
+
+        fetch('assets/empty_properties.geojson')
+            .then(response => response.json())
+            .then(data => {
+                let table = document.getElementById('propertiesTable');
+                data.features.forEach((feature, index) => {
+                    let row = table.insertRow();
+                    row.insertCell().textContent = feature.properties['Ward Name'];
+                    row.insertCell().textContent = feature.properties['Total number of properties empty'];
+                    row.insertCell().textContent = feature.properties['All properties empty > 6 months'];
+                    row.insertCell().textContent = feature.properties['All properties empty < 6 months'];
+                    row.insertCell().textContent = feature.properties['KPI number of properties empty > 6 months'];
+                });
+
+                map.on('load', () => {
+                    map.addSource('emptyProperties', {
+                        type: 'geojson',
+                        data: data
+                    });
+
+                    map.addLayer({
+                        id: 'emptyProperties-layer',
+                        type: 'circle',
+                        source: 'emptyProperties',
+                        paint: {
+                            'circle-radius': 5,
+                            'circle-color': '#ff0000'
+                        }
+                    });
+                });
+            });
+
+            function sortTable() {
+    let table, rows, switching, i, x, y, shouldSwitch;
+    table = document.getElementById("propertiesTable");
+    switching = true;
+    
+    // Loop until no switching has been done
+    while (switching) {
+        // Start by saying no switching is done
+        switching = false;
+        rows = table.rows;
+
+        // Loop through all rows (except the first, which contains table headers)
+        for (i = 1; i < (rows.length - 1); i++) {
+            shouldSwitch = false;
+
+            // Get the two elements to compare, one from current row and one from the next
+            x = parseInt(rows[i].getElementsByTagName("TD")[1].textContent);
+            y = parseInt(rows[i + 1].getElementsByTagName("TD")[1].textContent);
+
+            // Check if the two rows should switch place, descending order
+            if (x < y) {
+                // If yes, mark as a switch and break the loop
+                shouldSwitch = true;
+                break;
+            }
+        }
+        if (shouldSwitch) {
+            // If a switch has been marked, make the switch and mark the switching as done
+            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+            switching = true;
+        }
+    }
+}
+    </script>
+</body>
+
+</html>
